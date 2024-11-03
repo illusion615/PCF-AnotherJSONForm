@@ -5,11 +5,12 @@
     </external-service-usage>
     <resources>
       <code path="index.ts" order="1" />
+      <css path="css/styles.css" order="1" />
     </resources>
     <property name="jsonString" display-name-key="JSON String" description-key="The JSON string for display" of-type="SingleLine.Text" usage="bound" required="true" />
     <property name="labelPosition" display-name-key="Label Position" description-key="Define the relative position between label and value, by default is left, input Top to put lable on top." of-type="SingleLine.Text" usage="input"/>
     <property name="errorMessage" display-name-key="Invalid JSON Error Message" description-key="Error message to display when given JSON string invalid." of-type="SingleLine.Text" usage="input" />
-    <property name="viewMode" display-name-key="View Mode" description-key="The default view model when display the JSON string, String or Form, by default is Form." of-type="SingleLine.Text" usage="input" />
-    <property name="allowSwitch" display-name-key="Allow Switch View Model" description-key="Whether allow user to switch between view models, True or False, by default is True" of-type="SingleLine.Text" usage="input"/>
+    <property name="viewMode" display-name-key="View Mode" description-key="The default view model when display the JSON string, json or form, by default is form." of-type="SingleLine.Text" usage="input" />
+    <property name="allowSwitch" display-name-key="Allow Switch View Model" description-key="Whether allow user to switch between view models, true or false, by default is false" of-type="SingleLine.Text" usage="input"/>
     </control>
   </manifest>

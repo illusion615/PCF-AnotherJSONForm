@@ -1,0 +1,127 @@
+/* Ensure the search box takes full width */
+.search-box {
+  width: 100%;
+  box-sizing: border-box; /* Ensures padding and border are included in the element's total width */
+}
+
+/* Control container to manage layout and spacing */
+.control-container {
+  display: flex;
+  align-items: center;
+  margin-bottom: 8px; /* Optional: Add some space between controls */
+}
+
+/* Label styling to prevent overlap and manage spacing */
+.control-label {
+  flex: 0 0 var(--max-label-width, 150px); /* Use the CSS variable for label width */
+  margin-right: 8px; /* Space between label and input */
+  white-space: nowrap; /* Prevent label text from wrapping */
+  overflow: hidden; /* Hide overflow text */
+  text-overflow: ellipsis; /* Add ellipsis for overflow text */
+  text-align: left; /* Ensure the label text aligns to the left */
+}
+
+/* Input styling to take full width of its container */
+.control-input {
+  flex: 1 1 auto; /* Allow the input to take up remaining space */
+  width: 100%; /* Ensure input takes full width of its flex container */
+  box-sizing: border-box; /* Include padding and border in element's total width */
+}
+
+/* Container to ensure vertical alignment and scrollability */
+.container {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start; /* Align items to the top */
+  overflow-y: auto; /* Make content scrollable if it extends outside the container */
+  height: 100%; /* Ensure the container takes full height of the parent */
+}
+
+/* Ensure nested elements and list elements are displayed correctly */
+.json-tree-container {
+  white-space: pre-wrap;
+  font-family: monospace;
+  text-align: left;
+}
+
+/* JSON Syntax Highlighting */
+.string {
+  color: #b33c0d;
+}
+
+.number {
+  color: #B5CEA8;
+}
+
+.boolean {
+  color: #569CD6;
+}
+
+.null {
+  color: #569CD6;
+}
+
+.key {
+  color: #002c43;
+}
+
+.highlight {
+  background-color: yellow;
+}
+
+/* JSON Tree Styles */
+.json-tree {
+  list-style-type: none;
+  padding-left: 20px;
+  margin: 0;
+}
+
+.json-node {
+  position: relative;
+  margin-left: 20px;
+}
+
+.json-node > div {
+  display: flex;
+  align-items: flex-start;
+  flex-wrap: wrap;
+}
+
+.json-node > div > br {
+  display: none;
+}
+
+.json-node > div > span {
+  margin-right: 4px;
+}
+
+.json-key {
+  color: #003a5a;
+  font-weight: 600; /* Makes the font weight semi-bold */
+}
+
+.json-value.string {
+  color: #383838;
+}
+
+.json-value.number {
+  color: #B5CEA8;
+}
+
+.json-value.boolean {
+  color: #569CD6;
+}
+
+.json-value.null {
+  color: #569CD6;
+}
+
+.json-toggle {
+  cursor: pointer;
+  user-select: none;
+  color: #aaaaaa;
+}
+
+.json-bracket {
+  color: #000000; /* Adjust the color if needed */
+}

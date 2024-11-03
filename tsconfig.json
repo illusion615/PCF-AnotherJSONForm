@@ -2,5 +2,12 @@
     "extends": "./node_modules/pcf-scripts/tsconfig_base.json",
     "compilerOptions": {
         "typeRoots": ["node_modules/@types"],
+        "target": "es5",
+        "module": "commonjs",
+        "lib": ["es5", "dom"],
+        "declaration": true,
+        "sourceMap": true,
+        "outDir": "./dist",
+        "strict": true
     }
 }

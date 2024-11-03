@@ -82,6 +82,9 @@ export class JSONViewer implements ComponentFramework.StandardControl<IInputs, I
                 }
             }
         }
+
+        // Set the max label width as a CSS variable
+        this.container.style.setProperty('--max-label-width', `${this.maxLabelWidth}px`);
     }
 
     private getTextWidth(text: string): number {
@@ -160,7 +163,7 @@ export class JSONViewer implements ComponentFramework.StandardControl<IInputs, I
         this.searchBox = document.createElement("input");
         this.searchBox.type = "text";
         this.searchBox.placeholder = "Search...";
-        this.searchBox.className = "ms-TextField";
+        this.searchBox.className = "search-box"; // Apply the search-box class
         this.searchBox.addEventListener("input", () => this.renderJsonTree());
 
         searchContainer.appendChild(this.searchBox);
@@ -177,26 +180,52 @@ export class JSONViewer implements ComponentFramework.StandardControl<IInputs, I
 
         const jsonTreeContainer = document.createElement("div");
         jsonTreeContainer.className = "json-tree-container";
-        jsonTreeContainer.style.whiteSpace = "pre-wrap";
-        jsonTreeContainer.style.fontFamily = "monospace";
-        jsonTreeContainer.style.textAlign = "left";
 
         if (!this.jsonData) {
             this.renderErrorMessage();
             return;
         }
 
-        const jsonString = JSON.stringify(this.jsonData, null, 2);
-        const highlightedJson = this.highlightJson(jsonString);
-        jsonTreeContainer.innerHTML = highlightedJson;
+        const tree = this.createJsonTree(this.jsonData);
+        this.highlightMatches(tree, this.searchBox.value);
+        jsonTreeContainer.appendChild(tree);
 
         this.container.appendChild(jsonTreeContainer);
     }
 
     private highlightJson(json: string): string {
         const searchValue = this.searchBox ? this.searchBox.value : "";
-        const regex = new RegExp(`(${searchValue})`, 'gi');
-        return json.replace(regex, '<span style="background-color: yellow;">$1</span>');
+
+        // Escape HTML special characters
+        json = json.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+
+        // Syntax highlighting
+        json = json.replace(
+          /("(\\u[a-zA-Z0-9]{4}|\\[^u]|[^\\"])*"(\s*:)?|\b(true|false|null)\b|\b\d+(\.\d+)?\b)/g,
+          (match) => {
+            let cls = 'number';
+            if (/^"/.test(match)) {
+              if (/:$/.test(match)) {
+                cls = 'key';
+              } else {
+                cls = 'string';
+              }
+            } else if (/true|false/.test(match)) {
+              cls = 'boolean';
+            } else if (/null/.test(match)) {
+              cls = 'null';
+            }
+
+            // Highlight search term
+            if (searchValue && match.toLowerCase().includes(searchValue.toLowerCase())) {
+              return `<span class="${cls} highlight">${match}</span>`;
+            }
+
+            return `<span class="${cls}">${match}</span>`;
+          }
+        );
+
+        return json;
     }
 
     private renderErrorMessage(): void {
@@ -359,5 +388,110 @@ export class JSONViewer implements ComponentFramework.StandardControl<IInputs, I
         });
 
         return valueElement;
+    }
+
+    private createJsonTree(data: any, key?: string): HTMLElement {
+        const container = document.createElement('div');
+        container.className = 'json-node';
+
+        const wrapper = document.createElement('div');
+
+        // Check if data is an object or array
+        if (typeof data === 'object' && data !== null) {
+            const isArray = Array.isArray(data);
+            const openingBracket = isArray ? '[' : '{';
+            const closingBracket = isArray ? ']' : '}';
+
+            // Toggle element for expand/collapse
+            const toggle = document.createElement('span');
+            toggle.className = 'json-toggle';
+            toggle.textContent = '- ';
+            toggle.addEventListener('click', () => {
+                const isHidden = content.style.display === 'none';
+                content.style.display = isHidden ? 'block' : 'none';
+                toggle.textContent = isHidden ? '- ' : '+ ';
+            });
+
+            // Key
+            const keySpan = document.createElement('span');
+            keySpan.className = 'json-key';
+            if (key !== undefined) {
+                keySpan.textContent = `"${key}": `;
+            }
+
+            // Brackets
+            const openBracket = document.createElement('span');
+            openBracket.className = 'json-bracket';
+            openBracket.textContent = openingBracket;
+
+            const closeBracket = document.createElement('span');
+            closeBracket.className = 'json-bracket';
+            closeBracket.textContent = closingBracket;
+
+            // Content container
+            const content = document.createElement('div');
+            content.style.display = 'block';
+            content.style.paddingLeft = '20px';
+
+            // Recursively create child nodes
+            for (const childKey in data) {
+                if (Object.prototype.hasOwnProperty.call(data, childKey)) {
+                    const childNode = this.createJsonTree(data[childKey], childKey);
+                    content.appendChild(childNode);
+                }
+            }
+
+            // Assemble the node
+            wrapper.appendChild(toggle);
+            wrapper.appendChild(keySpan);
+            wrapper.appendChild(openBracket);
+            wrapper.appendChild(document.createElement('br'));
+            wrapper.appendChild(content);
+            wrapper.appendChild(closeBracket);
+        } else {
+            // For primitive values
+            const keySpan = document.createElement('span');
+            keySpan.className = 'json-key';
+            if (key !== undefined) {
+                keySpan.textContent = `"${key}": `;
+            }
+
+            const valueSpan = document.createElement('span');
+            const dataType = typeof data;
+            valueSpan.className = `json-value ${dataType}`;
+            valueSpan.textContent = dataType === 'string' ? `"${data}"` : String(data);
+
+            wrapper.appendChild(keySpan);
+            wrapper.appendChild(valueSpan);
+        }
+
+        container.appendChild(wrapper);
+        return container;
+    }
+
+    private highlightMatches(element: HTMLElement, searchValue: string): void {
+        if (!searchValue) return;
+
+        const regex = new RegExp(`(${searchValue})`, 'gi');
+
+        const traverse = (node: HTMLElement) => {
+            if (node.childNodes.length > 0) {
+                node.childNodes.forEach((child: Node) => {
+                    if (child.nodeType === Node.TEXT_NODE) {
+                        const text = child.textContent || '';
+                        if (regex.test(text)) {
+                            const highlightedText = text.replace(regex, '<span class="highlight">$1</span>');
+                            const fragment = document.createElement('span');
+                            fragment.innerHTML = highlightedText;
+                            node.replaceChild(fragment, child);
+                        }
+                    } else if (child.nodeType === Node.ELEMENT_NODE) {
+                        traverse(child as HTMLElement);
+                    }
+                });
+            }
+        };
+
+        traverse(element);
     }
 }
