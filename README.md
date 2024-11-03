@@ -1,8 +1,8 @@
 # AnotherJSONForm
 This is my first PCF component, inspired from project [pcf-form-json](https://github.com/temmyraharjo/pcf-form-json) by temmyraharjo, The reason why I made this another one is because:
-``
-I need a PCF component can convert from any JSON without to pre-defined structure, so it will need the component to dynamicly render the controls based on the JSON attribute and value.
-``
+
+>I need a PCF component that can convert any JSON based data into an editable form and doesn't need to pre-define the form structure, the component should render the controls based on the JSON attribute and values dynamically.
+
 
 Although it's not perfectly done today. But I will keep improving it as it's indeed a critical part in one of my projects.
 
