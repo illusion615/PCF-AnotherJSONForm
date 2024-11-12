@@ -7,18 +7,21 @@
 /* Control container to manage layout and spacing */
 .control-container {
   display: flex;
-  align-items: center;
-  margin-bottom: 8px; /* Optional: Add some space between controls */
+  margin-bottom: 8px; /* Add some space between controls */
+  align-items: flex-start;
+  width: 100%; /* Ensure the container takes full width of the parent */
+  border: none; /* Hide the border */
 }
 
 /* Label styling to prevent overlap and manage spacing */
 .control-label {
-  flex: 0 0 var(--max-label-width, 150px); /* Use the CSS variable for label width */
+  flex: 0 0 150px; /* Fixed width for labels */
   margin-right: 8px; /* Space between label and input */
+  font-weight: 600; /* Makes the font weight semi-bold */
+  text-align: left; /* Ensure the label text aligns to the left */
   white-space: nowrap; /* Prevent label text from wrapping */
   overflow: hidden; /* Hide overflow text */
   text-overflow: ellipsis; /* Add ellipsis for overflow text */
-  text-align: left; /* Ensure the label text aligns to the left */
 }
 
 /* Input styling to take full width of its container */
@@ -26,6 +29,9 @@
   flex: 1 1 auto; /* Allow the input to take up remaining space */
   width: 100%; /* Ensure input takes full width of its flex container */
   box-sizing: border-box; /* Include padding and border in element's total width */
+  border: 1px solid #ccc; /* Add a border to the input */
+  padding: 8px; /* Add padding for better appearance */
+  border-radius: 4px; /* Optional: Add border radius for rounded corners */
 }
 
 /* Container to ensure vertical alignment and scrollability */
@@ -35,6 +41,7 @@
   align-items: flex-start; /* Align items to the top */
   overflow-y: auto; /* Make content scrollable if it extends outside the container */
   height: 100%; /* Ensure the container takes full height of the parent */
+  border: none; /* Hide the container border */
 }
 
 /* Ensure nested elements and list elements are displayed correctly */
@@ -76,9 +83,12 @@
   margin: 0;
 }
 
+/* Add margin between list table rows */
 .json-node {
   position: relative;
   margin-left: 20px;
+  margin-bottom: 8px; /* Add margin between rows */
+  font-family: monospace;
 }
 
 .json-node > div {
@@ -87,41 +97,131 @@
   flex-wrap: wrap;
 }
 
+/* Hide the <br> elements inside .json-node divs to prevent extra spacing */
 .json-node > div > br {
   display: none;
 }
 
+/* Add margin to spans inside .json-node divs for proper spacing */
 .json-node > div > span {
   margin-right: 4px;
 }
 
 .json-key {
-  color: #003a5a;
+  color: #d35400;
   font-weight: 600; /* Makes the font weight semi-bold */
 }
 
 .json-value.string {
-  color: #383838;
+  color: #27ae60;
 }
 
 .json-value.number {
-  color: #B5CEA8;
+  color: #2980b9;
 }
 
 .json-value.boolean {
-  color: #569CD6;
+  color: #8e44ad;
 }
 
 .json-value.null {
-  color: #569CD6;
+  color: #7f8c8d;
 }
 
 .json-toggle {
   cursor: pointer;
   user-select: none;
-  color: #aaaaaa;
+  color: #444;
+  margin-right: 5px;
 }
 
 .json-bracket {
   color: #000000; /* Adjust the color if needed */
+}
+
+/* Separator line for nested elements in lists */
+.json-separator {
+  border-top: 1px solid #ccc;
+  margin: 8px 0;
+}
+
+/* Nested container styling */
+.nested-container {
+  padding-left: 20px; /* Indent nested elements */
+  border-left: 1px solid #ccc; /* Optional: Add a left border to indicate nesting */
+  margin-top: 8px; /* Add some space above nested container */
+  width: 100%; /* Ensure nested container takes full width */
+}
+
+/* Form container styling */
+.form-container {
+  display: flex;
+  flex-direction: column;
+}
+
+/* Table container styling */
+.table-container {
+  flex: 1 1 auto;
+  width: 100%;
+  margin-bottom: 16px;
+  border: none; /* Hide the border */
+}
+
+/* Data table styling */
+.data-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.data-table th,
+.data-table td {
+  border: 1px solid #ccc;
+  padding: 8px;
+  text-align: left;
+}
+
+.data-table th {
+  background-color: #f2f2f2;
+  font-weight: bold;
+}
+
+/* Styles for the button container */
+.button-container {
+  margin-bottom: 16px;
+  display: flex;
+  justify-content: flex-end; /* Aligns the content to the right */
+}
+
+/* Styles for the change view button */
+.change-view-button {
+  padding: 8px 16px;
+  font-size: 14px;
+  cursor: pointer;
+}
+
+/* Error message styling */
+.error-message {
+  color: red;
+  font-size: 16px;
+  margin-top: 16px;
+}
+
+/* Add any other necessary styles */
+
+/* Wrapper for each JSON element */
+.json-wrapper {
+  position: relative;
+}
+
+/* Indentation for child elements */
+.json-children {
+  margin-left: 20px;
+}
+
+/* Remove default margins and paddings */
+.json-node,
+.json-wrapper,
+.json-children {
+  margin: 0;
+  padding: 0;
 }

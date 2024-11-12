@@ -1,7 +1,7 @@
 /// <reference types="powerapps-component-framework" />
 import { IInputs, IOutputs } from "./generated/ManifestTypes";
 import '@fluentui/react/dist/css/fabric.css';
-export declare class JSONViewer implements ComponentFramework.StandardControl<IInputs, IOutputs> {
+export declare class AnotherJSONForm implements ComponentFramework.StandardControl<IInputs, IOutputs> {
     private container;
     private jsonString;
     private labelPosition;
@@ -13,6 +13,7 @@ export declare class JSONViewer implements ComponentFramework.StandardControl<II
     private maxLabelWidth;
     private searchBox;
     private tableStyle;
+    private viewContainer;
     constructor();
     init(context: ComponentFramework.Context<IInputs>, notifyOutputChanged: () => void, state: ComponentFramework.Dictionary, container: HTMLDivElement): void;
     updateView(context: ComponentFramework.Context<IInputs>): void;
@@ -30,4 +31,5 @@ export declare class JSONViewer implements ComponentFramework.StandardControl<II
     private createJsonTree;
     private highlightMatches;
     private createTable;
+    private createNestedControl;
 }

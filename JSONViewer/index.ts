@@ -4,7 +4,12 @@ import '@fluentui/react/dist/css/fabric.css';
 
 initializeIcons();
 
-export class JSONViewer implements ComponentFramework.StandardControl<IInputs, IOutputs> {
+enum TableStyleOptions {
+  Nested = 1,
+  Table = 2,
+}
+
+export class AnotherJSONForm implements ComponentFramework.StandardControl<IInputs, IOutputs> {
     private container: HTMLDivElement;
     private jsonString: string = "";
     private labelPosition: string;
@@ -15,8 +20,10 @@ export class JSONViewer implements ComponentFramework.StandardControl<IInputs, I
     private notifyOutputChanged: () => void;
     private maxLabelWidth: number = 0;
     private searchBox: HTMLInputElement;
+    private tableStyle: 'Nested' | 'Table';
+    private viewContainer: HTMLDivElement; // Add this property
 
-    constructor() {}
+    constructor() { }
 
     public init(
         context: ComponentFramework.Context<IInputs>,
@@ -25,12 +32,23 @@ export class JSONViewer implements ComponentFramework.StandardControl<IInputs, I
         container: HTMLDivElement
     ) {
         this.container = container;
+        this.viewContainer = document.createElement('div'); // Initialize view container
+        this.container.appendChild(this.viewContainer); // Append view container to main container
+
         this.notifyOutputChanged = notifyOutputChanged;
         this.jsonString = context.parameters.jsonString.raw || "";
         this.labelPosition = context.parameters.labelPosition.raw || "Left";
         this.errorMessage = context.parameters.errorMessage.raw || "Invalid JSON format.";
         this.viewMode = context.parameters.viewMode.raw === "json" ? 'json' : 'form';
         this.allowSwitch = context.parameters.allowSwitch.raw === "true";
+
+        // Adjusted tableStyle mapping
+        const tableStyleValue = context.parameters.tableStyle.raw;
+        if (tableStyleValue === TableStyleOptions.Table) {
+            this.tableStyle = 'Table';
+        } else {
+            this.tableStyle = 'Nested';
+        }
 
         try {
             this.jsonData = JSON.parse(this.jsonString);
@@ -61,6 +79,14 @@ export class JSONViewer implements ComponentFramework.StandardControl<IInputs, I
         this.viewMode = context.parameters.viewMode.raw === "json" ? 'json' : 'form';
         this.allowSwitch = context.parameters.allowSwitch.raw === "true";
 
+        // Map the OptionSet value to the corresponding style
+        const tableStyleValue = context.parameters.tableStyle.raw;
+        if (tableStyleValue === TableStyleOptions.Table) {
+            this.tableStyle = 'Table';
+        } else {
+            this.tableStyle = 'Nested';
+        }
+
         this.calculateMaxLabelWidth();
         this.renderControl();
     }
@@ -69,7 +95,7 @@ export class JSONViewer implements ComponentFramework.StandardControl<IInputs, I
         return { jsonString: JSON.stringify(this.jsonData) };
     }
 
-    public destroy(): void {}
+    public destroy(): void { }
 
     private calculateMaxLabelWidth(): void {
         this.maxLabelWidth = 0;
@@ -98,42 +124,34 @@ export class JSONViewer implements ComponentFramework.StandardControl<IInputs, I
     }
 
     private renderControl(): void {
-        this.container.innerHTML = "";
-        this.container.style.overflow = "auto";
-        this.container.style.height = "100%";
+        // Clear the view container (not the main container)
+        this.viewContainer.innerHTML = '';
 
+        // Create or update the switch button if allowed
         if (this.allowSwitch) {
-            const buttonContainer = document.createElement("div");
-            buttonContainer.style.display = "flex";
-            buttonContainer.style.justifyContent = "flex-end";
-            buttonContainer.style.marginBottom = "10px";
+            // Check if the button already exists to avoid duplicates
+            let buttonContainer = this.container.querySelector('.button-container') as HTMLDivElement;
+            if (!buttonContainer) {
+                buttonContainer = document.createElement('div');
+                buttonContainer.className = 'button-container';
 
-            const changeButton = document.createElement("button");
-            changeButton.className = "ms-Button";
-            changeButton.style.display = "flex";
-            changeButton.style.alignItems = "center";
-            changeButton.type = "button";
+                const changeButton = document.createElement('button');
+                changeButton.className = 'change-view-button';
+                changeButton.addEventListener('click', () => {
+                    this.viewMode = this.viewMode === 'form' ? 'json' : 'form';
+                    this.renderControl();
+                });
 
-            const iconElement = document.createElement("i");
-            iconElement.className = "ms-Icon ms-Icon--Refresh";
-            iconElement.setAttribute("aria-hidden", "true");
-            iconElement.style.fontSize = "16px";
-            iconElement.style.marginRight = "5px";
+                buttonContainer.appendChild(changeButton);
+                this.container.insertBefore(buttonContainer, this.viewContainer); // Insert before the view content
+            }
 
-            const textNode = document.createTextNode("Change View");
-
-            changeButton.appendChild(iconElement);
-            changeButton.appendChild(textNode);
-
-            changeButton.addEventListener("click", () => {
-                this.viewMode = this.viewMode === 'json' ? 'form' : 'json';
-                this.renderControl();
-            });
-
-            buttonContainer.appendChild(changeButton);
-            this.container.appendChild(buttonContainer);
+            // Update the button text based on the current view mode
+            const changeButton = buttonContainer.querySelector('.change-view-button') as HTMLButtonElement;
+            changeButton.textContent = this.viewMode === 'form' ? 'Switch to JSON View' : 'Switch to Form View';
         }
 
+        // Render the appropriate view into the view container
         if (this.viewMode === 'form') {
             this.renderFormView();
         } else {
@@ -142,42 +160,107 @@ export class JSONViewer implements ComponentFramework.StandardControl<IInputs, I
     }
 
     private renderFormView(): void {
+        // Clear the view container
+        this.viewContainer.innerHTML = '';
+
         if (!this.jsonData) {
             this.renderErrorMessage();
             return;
         }
 
+        const formContainer = document.createElement('div');
+        formContainer.className = 'form-container';
+
+        const createControl = (key: string, value: any): HTMLElement => {
+            if (typeof value === 'object' && value !== null) {
+                if (Array.isArray(value) && this.tableStyle === 'Table') {
+                    // Render the array as a table
+                    return this.createTable(key, value);
+                } else {
+                    // Render nested object
+                    const controlContainer = document.createElement('div');
+                    controlContainer.className = 'control-container';
+
+                    const label = document.createElement('label');
+                    label.textContent = key;
+                    label.className = 'control-label';
+
+                    const nestedContainer = document.createElement('div');
+                    nestedContainer.className = 'nested-container';
+
+                    for (const nestedKey in value) {
+                        if (Object.prototype.hasOwnProperty.call(value, nestedKey)) {
+                            const nestedControl = createControl(nestedKey, value[nestedKey]);
+                            nestedContainer.appendChild(nestedControl);
+                        }
+                    }
+
+                    controlContainer.appendChild(label);
+                    controlContainer.appendChild(nestedContainer);
+
+                    return controlContainer;
+                }
+            } else {
+                // Render primitive value
+                const controlContainer = document.createElement('div');
+                controlContainer.className = 'control-container';
+
+                const label = document.createElement('label');
+                label.textContent = key;
+                label.className = 'control-label';
+
+                const input = document.createElement('input');
+                input.type = 'text';
+                input.value = value;
+                input.className = 'control-input';
+
+                controlContainer.appendChild(label);
+                controlContainer.appendChild(input);
+
+                return controlContainer;
+            }
+        };
+
         for (const key in this.jsonData) {
             if (Object.prototype.hasOwnProperty.call(this.jsonData, key)) {
                 const value = this.jsonData[key];
-                const control = this.createControl(key, value, this.jsonData);
-                this.container.appendChild(control);
+                const control = createControl(key, value);
+                formContainer.appendChild(control);
             }
         }
+
+        this.viewContainer.appendChild(formContainer); // Append to view container
     }
 
     private renderJsonView(): void {
-        const searchContainer = document.createElement("div");
-        searchContainer.style.marginBottom = "10px";
+        // Clear the view container
+        this.viewContainer.innerHTML = '';
 
-        this.searchBox = document.createElement("input");
-        this.searchBox.type = "text";
-        this.searchBox.placeholder = "Search...";
-        this.searchBox.className = "search-box"; // Apply the search-box class
-        this.searchBox.addEventListener("input", () => this.renderJsonTree());
+        if (!this.jsonData) {
+            this.renderErrorMessage();
+            return;
+        }
 
-        searchContainer.appendChild(this.searchBox);
-        this.container.appendChild(searchContainer);
+        const jsonTreeContainer = document.createElement('div');
+        jsonTreeContainer.className = 'json-tree-container';
 
-        this.renderJsonTree();
+        // Generate JSON tree
+        const tree = this.createJsonTree(this.jsonData);
+
+        // Append tree to container
+        jsonTreeContainer.appendChild(tree);
+
+        this.viewContainer.appendChild(jsonTreeContainer); // Append to view container
     }
 
     private renderJsonTree(): void {
+        // Clear existing JSON tree
         const existingJsonTreeContainer = this.container.querySelector(".json-tree-container");
         if (existingJsonTreeContainer) {
-            this.container.removeChild(existingJsonTreeContainer);
+            existingJsonTreeContainer.remove();
         }
 
+        // Create new JSON tree container
         const jsonTreeContainer = document.createElement("div");
         jsonTreeContainer.className = "json-tree-container";
 
@@ -186,157 +269,61 @@ export class JSONViewer implements ComponentFramework.StandardControl<IInputs, I
             return;
         }
 
+        // Generate JSON tree
         const tree = this.createJsonTree(this.jsonData);
-        this.highlightMatches(tree, this.searchBox.value);
-        jsonTreeContainer.appendChild(tree);
 
+        // Append tree to container
+        jsonTreeContainer.appendChild(tree);
         this.container.appendChild(jsonTreeContainer);
     }
 
-    private highlightJson(json: string): string {
-        const searchValue = this.searchBox ? this.searchBox.value : "";
-
-        // Escape HTML special characters
-        json = json.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-
-        // Syntax highlighting
-        json = json.replace(
-          /("(\\u[a-zA-Z0-9]{4}|\\[^u]|[^\\"])*"(\s*:)?|\b(true|false|null)\b|\b\d+(\.\d+)?\b)/g,
-          (match) => {
-            let cls = 'number';
-            if (/^"/.test(match)) {
-              if (/:$/.test(match)) {
-                cls = 'key';
-              } else {
-                cls = 'string';
-              }
-            } else if (/true|false/.test(match)) {
-              cls = 'boolean';
-            } else if (/null/.test(match)) {
-              cls = 'null';
-            }
-
-            // Highlight search term
-            if (searchValue && match.toLowerCase().includes(searchValue.toLowerCase())) {
-              return `<span class="${cls} highlight">${match}</span>`;
-            }
-
-            return `<span class="${cls}">${match}</span>`;
-          }
-        );
-
-        return json;
-    }
-
     private renderErrorMessage(): void {
-        const errorMessageContainer = document.createElement("div");
-        errorMessageContainer.style.display = "flex";
-        errorMessageContainer.style.justifyContent = "center";
-        errorMessageContainer.style.alignItems = "center";
-        errorMessageContainer.style.height = "100%";
-        errorMessageContainer.style.color = "red";
-        errorMessageContainer.style.fontSize = "16px";
+        // Clear the view container
+        this.viewContainer.innerHTML = '';
+
+        const errorMessageContainer = document.createElement('div');
+        errorMessageContainer.className = 'error-message';
         errorMessageContainer.textContent = this.errorMessage;
 
-        this.container.appendChild(errorMessageContainer);
+        this.viewContainer.appendChild(errorMessageContainer); // Append to view container
     }
 
-    private createControl(label: string, value: any, parentObject: any): HTMLDivElement {
-        const controlContainer = document.createElement("div");
-        controlContainer.style.display = "flex";
-        controlContainer.style.flexDirection = this.labelPosition === "Top" ? "column" : "row";
-        controlContainer.style.alignItems = "flex-start";
-        controlContainer.style.marginBottom = "8px";
-        controlContainer.style.flex = "1"; // Make the control container fill the available space
+    private createControl(key: string, value: any): HTMLElement {
+        const controlContainer = document.createElement('div');
+        controlContainer.className = 'control-container';
 
-        const labelElement = document.createElement("label");
-        labelElement.textContent = label;
-        labelElement.className = "ms-Label";
-        labelElement.style.marginRight = this.labelPosition === "Top" ? "0" : "8px";
-        labelElement.style.width = this.labelPosition === "Top" ? "auto" : `${this.maxLabelWidth}px`;
-        labelElement.style.whiteSpace = "nowrap";
-        labelElement.style.textAlign = "left";
+        const label = document.createElement('label');
+        label.textContent = key;
+        label.className = 'control-label';
 
-        controlContainer.appendChild(labelElement);
-
-        if (typeof value === "object" && !Array.isArray(value)) {
-            // Handle nested object
-            const groupContainer = document.createElement("div");
-            groupContainer.style.marginLeft = this.labelPosition === "Top" ? "0" : "20px";
-            groupContainer.style.flex = "1"; // Allow the group container to grow
-            groupContainer.style.display = "flex";
-            groupContainer.style.flexDirection = "column";
-
-            for (const key in value) {
-                if (Object.prototype.hasOwnProperty.call(value, key)) {
-                    const nestedControl = this.createControl(key, value[key], value);
-                    groupContainer.appendChild(nestedControl);
-                }
+        if (typeof value === 'object' && value !== null) {
+            if (Array.isArray(value) && this.tableStyle === 'Table') {
+                // Render the array as a table
+                const tableElement = this.createTable(key, value);
+                controlContainer.appendChild(label);
+                controlContainer.appendChild(tableElement);
+            } else {
+                // Render nested object
+                const nestedContainer = this.createNestedControl(value);
+                controlContainer.appendChild(label);
+                controlContainer.appendChild(nestedContainer);
             }
-            controlContainer.appendChild(groupContainer);
-        } else if (Array.isArray(value)) {
-            // Handle array
-            const tableContainer = document.createElement("div");
-            tableContainer.style.overflow = "auto";
-            tableContainer.style.flex = "1"; // Allow the table container to grow
-            tableContainer.style.width = "100%";
-
-            const table = document.createElement("table");
-            table.className = "ms-Table";
-            table.style.width = "100%";
-            table.style.height = "100%"; // Make the table use full height
-
-            // Create table header
-            const thead = document.createElement("thead");
-            const headerRow = document.createElement("tr");
-            headerRow.className = "ms-Table-row";
-
-            // Dynamically create table headers based on the first element's keys
-            const firstElement = value[0];
-            for (const key in firstElement) {
-                if (Object.prototype.hasOwnProperty.call(firstElement, key)) {
-                    const headerCell = document.createElement("th");
-                    headerCell.className = "ms-Table-cell";
-                    headerCell.textContent = key;
-                    headerRow.appendChild(headerCell);
-                }
-            }
-            thead.appendChild(headerRow);
-            table.appendChild(thead);
-
-            // Create table body
-            const tbody = document.createElement("tbody");
-            value.forEach((item, index) => {
-                const row = document.createElement("tr");
-                row.className = "ms-Table-row";
-
-                for (const key in item) {
-                    if (Object.prototype.hasOwnProperty.call(item, key)) {
-                        const cell = document.createElement("td");
-                        cell.className = "ms-Table-cell";
-
-                        const valueElement = this.createValueControl(item[key], (newValue) => {
-                            item[key] = newValue;
-                            this.notifyOutputChanged();
-                        });
-                        cell.appendChild(valueElement);
-                        row.appendChild(cell);
-                    }
-                }
-                tbody.appendChild(row);
-            });
-            table.appendChild(tbody);
-
-            tableContainer.appendChild(table);
-            controlContainer.appendChild(tableContainer);
         } else {
-            // Handle primitive value
-            const valueElement = this.createValueControl(value, (newValue) => {
-                parentObject[label] = newValue;
+            // Render primitive value
+            const input = document.createElement('input');
+            input.type = 'text';
+            input.value = value !== undefined ? value : '';
+            input.className = 'control-input';
+
+            // Add event listener to handle changes
+            input.addEventListener('input', (event) => {
+                const newValue = (event.target as HTMLInputElement).value;
+                // Update the value in the data model if needed
                 this.notifyOutputChanged();
             });
-            valueElement.style.flex = "1";
-            controlContainer.appendChild(valueElement);
+
+            controlContainer.appendChild(label);
+            controlContainer.appendChild(input);
         }
 
         return controlContainer;
@@ -390,78 +377,95 @@ export class JSONViewer implements ComponentFramework.StandardControl<IInputs, I
         return valueElement;
     }
 
-    private createJsonTree(data: any, key?: string): HTMLElement {
+    private createJsonTree(data: any, key?: string, parentElement?: HTMLElement, level: number = 0): HTMLElement {
         const container = document.createElement('div');
         container.className = 'json-node';
 
         const wrapper = document.createElement('div');
+        wrapper.className = 'json-wrapper';
 
-        // Check if data is an object or array
-        if (typeof data === 'object' && data !== null) {
+        // Indentation based on the level
+        wrapper.style.marginLeft = `${level * 20}px`;
+
+        // Handle keys
+        if (key !== undefined) {
+            const keySpan = document.createElement('span');
+            keySpan.className = 'json-key';
+            keySpan.textContent = `"${key}": `;
+            wrapper.appendChild(keySpan);
+        }
+
+        if (data && typeof data === 'object' && data !== null) {
             const isArray = Array.isArray(data);
             const openingBracket = isArray ? '[' : '{';
             const closingBracket = isArray ? ']' : '}';
 
-            // Toggle element for expand/collapse
-            const toggle = document.createElement('span');
-            toggle.className = 'json-toggle';
-            toggle.textContent = '- ';
-            toggle.addEventListener('click', () => {
-                const isHidden = content.style.display === 'none';
-                content.style.display = isHidden ? 'block' : 'none';
-                toggle.textContent = isHidden ? '- ' : '+ ';
-            });
+            // Collapse control
+            const collapseControl = document.createElement('span');
+            collapseControl.className = 'json-toggle';
+            collapseControl.textContent = '-';
+            collapseControl.style.cursor = 'pointer';
 
-            // Key
-            const keySpan = document.createElement('span');
-            keySpan.className = 'json-key';
-            if (key !== undefined) {
-                keySpan.textContent = `"${key}": `;
-            }
+            wrapper.appendChild(collapseControl);
 
-            // Brackets
+            // Opening bracket
             const openBracket = document.createElement('span');
             openBracket.className = 'json-bracket';
             openBracket.textContent = openingBracket;
+            wrapper.appendChild(openBracket);
 
+            // Line break and indent
+            const lineBreak = document.createElement('br');
+            wrapper.appendChild(lineBreak);
+
+            // Child nodes container
+            const childrenContainer = document.createElement('div');
+            childrenContainer.className = 'json-children';
+
+            // Recursively create child nodes
+            const childKeys = Object.keys(data);
+            childKeys.forEach((childKey, index) => {
+                const childNode = this.createJsonTree(
+                    data[childKey],
+                    isArray ? undefined : childKey,
+                    childrenContainer,
+                    level + 1
+                );
+                childrenContainer.appendChild(childNode);
+
+                // Comma after each item except the last
+                if (index < childKeys.length - 1) {
+                    const comma = document.createElement('span');
+                    comma.textContent = ',';
+                    childNode.appendChild(comma);
+                }
+            });
+
+            wrapper.appendChild(childrenContainer);
+
+            // Closing bracket with indentation
+            const closingWrapper = document.createElement('div');
+            closingWrapper.style.marginLeft = `${level * 20}px`;
             const closeBracket = document.createElement('span');
             closeBracket.className = 'json-bracket';
             closeBracket.textContent = closingBracket;
+            closingWrapper.appendChild(closeBracket);
 
-            // Content container
-            const content = document.createElement('div');
-            content.style.display = 'block';
-            content.style.paddingLeft = '20px';
+            wrapper.appendChild(closingWrapper);
 
-            // Recursively create child nodes
-            for (const childKey in data) {
-                if (Object.prototype.hasOwnProperty.call(data, childKey)) {
-                    const childNode = this.createJsonTree(data[childKey], childKey);
-                    content.appendChild(childNode);
-                }
-            }
-
-            // Assemble the node
-            wrapper.appendChild(toggle);
-            wrapper.appendChild(keySpan);
-            wrapper.appendChild(openBracket);
-            wrapper.appendChild(document.createElement('br'));
-            wrapper.appendChild(content);
-            wrapper.appendChild(closeBracket);
+            // Expand/Collapse functionality
+            collapseControl.addEventListener('click', () => {
+                const isCollapsed = childrenContainer.style.display === 'none';
+                childrenContainer.style.display = isCollapsed ? 'block' : 'none';
+                closingWrapper.style.display = isCollapsed ? 'block' : 'none';
+                collapseControl.textContent = isCollapsed ? '-' : '+';
+            });
         } else {
-            // For primitive values
-            const keySpan = document.createElement('span');
-            keySpan.className = 'json-key';
-            if (key !== undefined) {
-                keySpan.textContent = `"${key}": `;
-            }
-
+            // Primitive values
             const valueSpan = document.createElement('span');
-            const dataType = typeof data;
-            valueSpan.className = `json-value ${dataType}`;
-            valueSpan.textContent = dataType === 'string' ? `"${data}"` : String(data);
-
-            wrapper.appendChild(keySpan);
+            valueSpan.className = `json-value ${typeof data}`;
+            valueSpan.textContent =
+                typeof data === 'string' ? `"${data}"` : String(data);
             wrapper.appendChild(valueSpan);
         }
 
@@ -493,5 +497,100 @@ export class JSONViewer implements ComponentFramework.StandardControl<IInputs, I
         };
 
         traverse(element);
+    }
+
+    private createTable(key: string, dataArray: any[]): HTMLElement {
+        const controlContainer = document.createElement('div');
+        controlContainer.className = 'control-container';
+
+        const label = document.createElement('label');
+        label.textContent = key;
+        label.className = 'control-label';
+
+        const tableContainer = document.createElement('div');
+        tableContainer.className = 'table-container';
+
+        const table = document.createElement('table');
+        table.className = 'data-table';
+
+        // Create table header
+        const thead = document.createElement('thead');
+        const headerRow = document.createElement('tr');
+
+        // Get all unique keys from dataArray
+        const keysSet = new Set<string>();
+        dataArray.forEach(item => {
+            Object.keys(item).forEach(k => keysSet.add(k));
+        });
+        const keys = Array.from(keysSet);
+
+        keys.forEach(colKey => {
+            const th = document.createElement('th');
+            th.textContent = colKey;
+            headerRow.appendChild(th);
+        });
+        thead.appendChild(headerRow);
+        table.appendChild(thead);
+
+        // Create table body
+        const tbody = document.createElement('tbody');
+        dataArray.forEach((item, rowIndex) => {
+            const row = document.createElement('tr');
+            keys.forEach(colKey => {
+                const td = document.createElement('td');
+
+                const cellValue = item[colKey];
+                if (typeof cellValue === 'object' && cellValue !== null) {
+                    if (Array.isArray(cellValue) && this.tableStyle === 'Table') {
+                        // Handle nested arrays recursively
+                        const nestedTable = this.createTable(colKey, cellValue);
+                        td.appendChild(nestedTable);
+                    } else {
+                        // Render nested object
+                        const nestedControl = this.createNestedControl(cellValue);
+                        td.appendChild(nestedControl);
+                    }
+                } else {
+                    // Create input box for primitive values
+                    const cellInput = document.createElement('input');
+                    cellInput.type = 'text';
+                    cellInput.value = cellValue !== undefined ? cellValue : '';
+                    cellInput.className = 'control-input';
+
+                    // Add event listener to update dataArray
+                    cellInput.addEventListener('input', (event) => {
+                        const newValue = (event.target as HTMLInputElement).value;
+                        dataArray[rowIndex][colKey] = newValue;
+                        this.notifyOutputChanged();
+                    });
+                    td.appendChild(cellInput);
+                }
+
+                row.appendChild(td);
+            });
+            tbody.appendChild(row);
+        });
+        table.appendChild(tbody);
+
+        tableContainer.appendChild(table);
+
+        controlContainer.appendChild(label);
+        controlContainer.appendChild(tableContainer);
+
+        return controlContainer;
+    }
+
+    private createNestedControl(value: any): HTMLElement {
+        const nestedContainer = document.createElement('div');
+        nestedContainer.className = 'nested-container';
+
+        for (const key in value) {
+            if (Object.prototype.hasOwnProperty.call(value, key)) {
+                const control = this.createControl(key, value[key]);
+                nestedContainer.appendChild(control);
+            }
+        }
+
+        return nestedContainer;
     }
 }
