@@ -10,6 +10,10 @@ Btw, this project is work with GitHub Copilot and done in a day. And I Haven't d
 
 Screenshot
 Form view
-![alt text](image.png)
-String view with search function
-![alt text](image-1.png)
+![alt text](image-2.png)
+Label position(top/left)
+![alt text](image-4.png)
+List item display model(table/nested)
+![alt text](image-5.png)
+Json view with search function
+![alt text](image-3.png)
