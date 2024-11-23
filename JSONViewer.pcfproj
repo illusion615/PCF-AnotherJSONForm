@@ -8,9 +8,10 @@
   <Import Project="$(PowerAppsTargetsPath)\Microsoft.PowerApps.VisualStudio.Pcf.props" Condition="Exists('$(PowerAppsTargetsPath)\Microsoft.PowerApps.VisualStudio.Pcf.props')" />
 
   <PropertyGroup>
-    <Name>JSONViewer</Name>
+    <Name>AnotherJSONForm</Name>
     <ProjectGuid>49c876a4-20da-4fc2-957a-bc79d4339b7d</ProjectGuid>
     <OutputPath>$(MSBuildThisFileDirectory)out\controls</OutputPath>
+    <pcfBuildMode>production</pcfBuildMode>
   </PropertyGroup>
 
   <PropertyGroup>

@@ -5,7 +5,7 @@
     <UniqueName>AnotherJSONForm</UniqueName>
     <LocalizedNames>
       <!-- Localized Solution Name in language code -->
-      <LocalizedName description="Solutions" languagecode="1033" />
+      <LocalizedName description="AnotherJSONForm" languagecode="1033" />
     </LocalizedNames>
     <Descriptions />
     <Version>1.0</Version>
@@ -27,7 +27,7 @@
       <!-- Customization Prefix for the Cds Publisher-->
       <CustomizationPrefix>i615</CustomizationPrefix>
       <!-- Derived Option Value Prefix for the Customization Prefix of Cds Publisher -->
-      <CustomizationOptionValuePrefix>73450</CustomizationOptionValuePrefix>
+      <CustomizationOptionValuePrefix>57549</CustomizationOptionValuePrefix>
       <Addresses>
         <!-- Address of the Publisher-->
         <Address>

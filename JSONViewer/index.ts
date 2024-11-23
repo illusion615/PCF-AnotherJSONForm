@@ -1,13 +1,9 @@
 import { IInputs, IOutputs } from "./generated/ManifestTypes";
 import { initializeIcons } from '@fluentui/react/lib/Icons';
 import '@fluentui/react/dist/css/fabric.css';
+import { error } from "console";
 
 initializeIcons();
-
-enum TableStyleOptions {
-  Nested = 1,
-  Table = 2,
-}
 
 export class AnotherJSONForm implements ComponentFramework.StandardControl<IInputs, IOutputs> {
     private container: HTMLDivElement;
@@ -20,8 +16,8 @@ export class AnotherJSONForm implements ComponentFramework.StandardControl<IInpu
     private notifyOutputChanged: () => void;
     private maxLabelWidth: number = 0;
     private searchBox: HTMLInputElement;
-    private tableStyle: 'Nested' | 'Table';
-    private viewContainer: HTMLDivElement; // Add this property
+    private tableStyle: string;
+    private viewContainer: HTMLDivElement;
 
     constructor() { }
 
@@ -32,33 +28,19 @@ export class AnotherJSONForm implements ComponentFramework.StandardControl<IInpu
         container: HTMLDivElement
     ) {
         this.container = container;
-        this.viewContainer = document.createElement('div'); // Initialize view container
-        this.container.appendChild(this.viewContainer); // Append view container to main container
 
-        this.notifyOutputChanged = notifyOutputChanged;
-        this.jsonString = context.parameters.jsonString.raw || "";
-        this.labelPosition = context.parameters.labelPosition.raw || "Left";
-        this.errorMessage = context.parameters.errorMessage.raw || "Invalid JSON format.";
-        this.viewMode = context.parameters.viewMode.raw === "json" ? 'json' : 'form';
-        this.allowSwitch = context.parameters.allowSwitch.raw === "true";
+        // Create viewContainer
+        this.viewContainer = document.createElement('div');
 
-        // Adjusted tableStyle mapping
-        const tableStyleValue = context.parameters.tableStyle.raw;
-        if (tableStyleValue === TableStyleOptions.Table) {
-            this.tableStyle = 'Table';
-        } else {
-            this.tableStyle = 'Nested';
-        }
+        // Allow viewContainer to grow and scroll
+        this.viewContainer.style.flexGrow = '1';
+        this.viewContainer.style.overflow = 'auto';
 
-        try {
-            this.jsonData = JSON.parse(this.jsonString);
-        } catch (e) {
-            console.error("Invalid JSON string during init:", e);
-            this.jsonData = {};
-        }
+        // Append viewContainer to container
+        this.container.appendChild(this.viewContainer);
 
-        this.calculateMaxLabelWidth();
-        this.renderControl();
+        this.notifyOutputChanged = notifyOutputChanged;       
+        this.updateView(context);
     }
 
     public updateView(context: ComponentFramework.Context<IInputs>): void {
@@ -69,23 +51,16 @@ export class AnotherJSONForm implements ComponentFramework.StandardControl<IInpu
             try {
                 this.jsonData = JSON.parse(this.jsonString);
             } catch (e) {
-                console.error("Invalid JSON string during updateView:", e);
-                this.jsonData = {};
+                console.error(this.errorMessage, e);
+                this.jsonData = null; // Set jsonData to null to trigger error message
             }
         }
 
-        this.labelPosition = context.parameters.labelPosition.raw || "Left";
+        this.labelPosition = context.parameters.labelPosition.raw?.toLowerCase() || "left";
         this.errorMessage = context.parameters.errorMessage.raw || "Invalid JSON format.";
-        this.viewMode = context.parameters.viewMode.raw === "json" ? 'json' : 'form';
+        this.viewMode = context.parameters.viewMode.raw?.toLowerCase() === "json" ? 'json' : 'form';
         this.allowSwitch = context.parameters.allowSwitch.raw === "true";
-
-        // Map the OptionSet value to the corresponding style
-        const tableStyleValue = context.parameters.tableStyle.raw;
-        if (tableStyleValue === TableStyleOptions.Table) {
-            this.tableStyle = 'Table';
-        } else {
-            this.tableStyle = 'Nested';
-        }
+        this.tableStyle = context.parameters.tableStyle.raw?.toLowerCase() || 'table';
 
         this.calculateMaxLabelWidth();
         this.renderControl();
@@ -128,9 +103,8 @@ export class AnotherJSONForm implements ComponentFramework.StandardControl<IInpu
         this.viewContainer.innerHTML = '';
 
         // Create or update the switch button if allowed
+        let buttonContainer = this.container.querySelector('.button-container') as HTMLDivElement;
         if (this.allowSwitch) {
-            // Check if the button already exists to avoid duplicates
-            let buttonContainer = this.container.querySelector('.button-container') as HTMLDivElement;
             if (!buttonContainer) {
                 buttonContainer = document.createElement('div');
                 buttonContainer.className = 'button-container';
@@ -149,6 +123,11 @@ export class AnotherJSONForm implements ComponentFramework.StandardControl<IInpu
             // Update the button text based on the current view mode
             const changeButton = buttonContainer.querySelector('.change-view-button') as HTMLButtonElement;
             changeButton.textContent = this.viewMode === 'form' ? 'Switch to JSON View' : 'Switch to Form View';
+            
+        } else {
+            if (buttonContainer) {
+                buttonContainer.style.display = 'none'; // Hide the button container
+            }
         }
 
         // Render the appropriate view into the view container
@@ -172,19 +151,33 @@ export class AnotherJSONForm implements ComponentFramework.StandardControl<IInpu
         formContainer.className = 'form-container';
 
         const createControl = (key: string, value: any): HTMLElement => {
+            const controlContainer = document.createElement('div');
+            controlContainer.className = 'control-container';
+
+            const label = document.createElement('label');
+            label.textContent = key;
+            label.className = 'control-label';
+
+            // Apply label position
+            if (this.labelPosition === 'top') {
+                controlContainer.style.flexDirection = 'column';
+                label.style.marginBottom = '4px'; // Adjust margin for top position
+            } else {
+                controlContainer.style.flexDirection = 'row';
+                label.style.marginRight = '8px'; // Adjust margin for left position
+                label.style.width = '150px'; // Set fixed width for left position
+                label.style.overflow = 'hidden'; // Hide overflow text
+                label.style.textOverflow = 'ellipsis'; // Add ellipsis for overflow text
+                label.style.whiteSpace = 'nowrap'; // Prevent text wrapping
+                label.title = key; // Add tooltip with full label text
+            }
+
             if (typeof value === 'object' && value !== null) {
-                if (Array.isArray(value) && this.tableStyle === 'Table') {
+                if (Array.isArray(value) && this.tableStyle === 'table') {
                     // Render the array as a table
                     return this.createTable(key, value);
                 } else {
                     // Render nested object
-                    const controlContainer = document.createElement('div');
-                    controlContainer.className = 'control-container';
-
-                    const label = document.createElement('label');
-                    label.textContent = key;
-                    label.className = 'control-label';
-
                     const nestedContainer = document.createElement('div');
                     nestedContainer.className = 'nested-container';
 
@@ -202,13 +195,6 @@ export class AnotherJSONForm implements ComponentFramework.StandardControl<IInpu
                 }
             } else {
                 // Render primitive value
-                const controlContainer = document.createElement('div');
-                controlContainer.className = 'control-container';
-
-                const label = document.createElement('label');
-                label.textContent = key;
-                label.className = 'control-label';
-
                 const input = document.createElement('input');
                 input.type = 'text';
                 input.value = value;
@@ -241,6 +227,31 @@ export class AnotherJSONForm implements ComponentFramework.StandardControl<IInpu
             return;
         }
 
+        // Create search box
+        const searchContainer = document.createElement('div');
+        searchContainer.className = 'search-container';
+
+        const searchInput = document.createElement('input');
+        searchInput.type = 'text';
+        searchInput.placeholder = 'Search...';
+        searchInput.className = 'search-input';
+
+        searchInput.addEventListener('input', () => {
+            const jsonTreeContainer = this.viewContainer.querySelector('.json-tree-container');
+            if (jsonTreeContainer) {
+                // Remove previous highlights
+                this.removeHighlights(jsonTreeContainer as HTMLElement);
+                // Highlight matches
+                this.highlightMatches(jsonTreeContainer as HTMLElement, searchInput.value);
+            }
+        });
+
+        searchContainer.appendChild(searchInput);
+
+        // Append search box to view container
+        this.viewContainer.appendChild(searchContainer);
+
+        // Create JSON tree container
         const jsonTreeContainer = document.createElement('div');
         jsonTreeContainer.className = 'json-tree-container';
 
@@ -250,31 +261,8 @@ export class AnotherJSONForm implements ComponentFramework.StandardControl<IInpu
         // Append tree to container
         jsonTreeContainer.appendChild(tree);
 
-        this.viewContainer.appendChild(jsonTreeContainer); // Append to view container
-    }
-
-    private renderJsonTree(): void {
-        // Clear existing JSON tree
-        const existingJsonTreeContainer = this.container.querySelector(".json-tree-container");
-        if (existingJsonTreeContainer) {
-            existingJsonTreeContainer.remove();
-        }
-
-        // Create new JSON tree container
-        const jsonTreeContainer = document.createElement("div");
-        jsonTreeContainer.className = "json-tree-container";
-
-        if (!this.jsonData) {
-            this.renderErrorMessage();
-            return;
-        }
-
-        // Generate JSON tree
-        const tree = this.createJsonTree(this.jsonData);
-
-        // Append tree to container
-        jsonTreeContainer.appendChild(tree);
-        this.container.appendChild(jsonTreeContainer);
+        // Append JSON tree to view container
+        this.viewContainer.appendChild(jsonTreeContainer);
     }
 
     private renderErrorMessage(): void {
@@ -296,8 +284,22 @@ export class AnotherJSONForm implements ComponentFramework.StandardControl<IInpu
         label.textContent = key;
         label.className = 'control-label';
 
+        // Apply label position
+        if (this.labelPosition === 'top') {
+            controlContainer.style.flexDirection = 'column';
+            label.style.marginBottom = '4px'; // Adjust margin for top position
+        } else {
+            controlContainer.style.flexDirection = 'row';
+            label.style.marginRight = '8px'; // Adjust margin for left position
+            label.style.width = '150px'; // Set fixed width for left position
+            label.style.overflow = 'hidden'; // Hide overflow text
+            label.style.textOverflow = 'ellipsis'; // Add ellipsis for overflow text
+            label.style.whiteSpace = 'nowrap'; // Prevent text wrapping
+            label.title = key; // Add tooltip with full label text
+        }
+
         if (typeof value === 'object' && value !== null) {
-            if (Array.isArray(value) && this.tableStyle === 'Table') {
+            if (Array.isArray(value) && this.tableStyle === 'table') {
                 // Render the array as a table
                 const tableElement = this.createTable(key, value);
                 controlContainer.appendChild(label);
@@ -309,16 +311,10 @@ export class AnotherJSONForm implements ComponentFramework.StandardControl<IInpu
                 controlContainer.appendChild(nestedContainer);
             }
         } else {
-            // Render primitive value
-            const input = document.createElement('input');
-            input.type = 'text';
-            input.value = value !== undefined ? value : '';
-            input.className = 'control-input';
-
-            // Add event listener to handle changes
-            input.addEventListener('input', (event) => {
-                const newValue = (event.target as HTMLInputElement).value;
-                // Update the value in the data model if needed
+            // Use createValueControl to create the input element
+            const input = this.createValueControl(value, (newValue: any) => {
+                // Update the value in the data model
+                this.jsonData[key] = newValue;
                 this.notifyOutputChanged();
             });
 
@@ -398,7 +394,7 @@ export class AnotherJSONForm implements ComponentFramework.StandardControl<IInpu
         if (data && typeof data === 'object' && data !== null) {
             const isArray = Array.isArray(data);
             const openingBracket = isArray ? '[' : '{';
-            const closingBracket = isArray ? ']' : '}';
+            const closingBracket = isArray ? '],' : '},';
 
             // Collapse control
             const collapseControl = document.createElement('span');
@@ -434,11 +430,11 @@ export class AnotherJSONForm implements ComponentFramework.StandardControl<IInpu
                 childrenContainer.appendChild(childNode);
 
                 // Comma after each item except the last
-                if (index < childKeys.length - 1) {
-                    const comma = document.createElement('span');
-                    comma.textContent = ',';
-                    childNode.appendChild(comma);
-                }
+                // if (index < childKeys.length - 1) {
+                //     const comma = document.createElement('span');
+                //     comma.textContent = ',';
+                //     childNode.appendChild(comma);
+                // }
             });
 
             wrapper.appendChild(childrenContainer);
@@ -465,7 +461,7 @@ export class AnotherJSONForm implements ComponentFramework.StandardControl<IInpu
             const valueSpan = document.createElement('span');
             valueSpan.className = `json-value ${typeof data}`;
             valueSpan.textContent =
-                typeof data === 'string' ? `"${data}"` : String(data);
+                typeof data === 'string' ? `"${data}",` : `${String(data)},`;
             wrapper.appendChild(valueSpan);
         }
 
@@ -506,6 +502,12 @@ export class AnotherJSONForm implements ComponentFramework.StandardControl<IInpu
         const label = document.createElement('label');
         label.textContent = key;
         label.className = 'control-label';
+
+        if (this.labelPosition === 'top') {
+            controlContainer.style.flexDirection = 'column';
+        } else {
+            controlContainer.style.flexDirection = 'row';
+        }
 
         const tableContainer = document.createElement('div');
         tableContainer.className = 'table-container';
@@ -592,5 +594,16 @@ export class AnotherJSONForm implements ComponentFramework.StandardControl<IInpu
         }
 
         return nestedContainer;
+    }
+
+    private removeHighlights(element: HTMLElement): void {
+        const highlights = element.querySelectorAll('.highlight');
+        highlights.forEach((highlight) => {
+            const parent = highlight.parentNode;
+            if (parent) {
+                parent.replaceChild(document.createTextNode(highlight.textContent || ''), highlight);
+                parent.normalize();
+            }
+        });
     }
 }

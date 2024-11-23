@@ -11,17 +11,20 @@
   align-items: flex-start;
   width: 100%; /* Ensure the container takes full width of the parent */
   border: none; /* Hide the border */
+  overflow-y: auto; /* Make content scrollable if it extends outside the container */
 }
 
 /* Label styling to prevent overlap and manage spacing */
 .control-label {
-  flex: 0 0 150px; /* Fixed width for labels */
+  flex: 0 0 auto; /* Fixed width for labels */
   margin-right: 8px; /* Space between label and input */
+  margin-top: 6px;
   font-weight: 600; /* Makes the font weight semi-bold */
   text-align: left; /* Ensure the label text aligns to the left */
   white-space: nowrap; /* Prevent label text from wrapping */
   overflow: hidden; /* Hide overflow text */
   text-overflow: ellipsis; /* Add ellipsis for overflow text */
+  min-width: 150px; /* Set a minimum width for the label */
 }
 
 /* Input styling to take full width of its container */
@@ -175,7 +178,7 @@
 
 .data-table th,
 .data-table td {
-  border: 1px solid #ccc;
+  border: 0px solid #ccc;
   padding: 8px;
   text-align: left;
 }

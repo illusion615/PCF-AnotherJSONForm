@@ -24,7 +24,6 @@ export declare class AnotherJSONForm implements ComponentFramework.StandardContr
     private renderControl;
     private renderFormView;
     private renderJsonView;
-    private renderJsonTree;
     private renderErrorMessage;
     private createControl;
     private createValueControl;
@@ -32,4 +31,5 @@ export declare class AnotherJSONForm implements ComponentFramework.StandardContr
     private highlightMatches;
     private createTable;
     private createNestedControl;
+    private removeHighlights;
 }
